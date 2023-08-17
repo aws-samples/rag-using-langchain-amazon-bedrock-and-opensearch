@@ -7,7 +7,7 @@ After we successfully loaded embeddings into OpenSearch, we will then start quer
 ## Prerequisites
 
 1. This was tested on Python 3.11.4
-2. It is advise to work on a clean environment, use `virtualenv` or any other virtual environment packages.
+2. It is advise to work on a clean environment, use `virtualenv` or any other virtual environment manager.
 
     ```bash
     pip install virtualenv
