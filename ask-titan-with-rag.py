@@ -78,7 +78,11 @@ def main():
     opensearch_vector_search_client = create_opensearch_vector_search_client(index_name, opensearch_password, bedrock_embeddings_client, opensearch_endpoint)
     
     # LangChain prompt template
-    question = "what is the meaning of <3?"
+    if len(args.ask) > 0:
+        question = args.ask
+    else:
+        question = "what is the meaning of <3?"
+        logging.info(f"No question provided, using default question {question}")
     
     prompt_template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer. don't include harmful content
 
