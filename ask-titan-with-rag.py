@@ -108,7 +108,7 @@ def main():
     source_documents = response.get('source_documents')
     for d in source_documents:
         logging.info(f"With the following similar content from OpenSearch:\n{d.page_content}\n")
-        # logging.info(f"vector: {d.metadata}")
+        logging.info(f"Text: {d.metadata['text']}")
     
     logging.info(f"\nThe answer from Titan: {response.get('result')}")
     
