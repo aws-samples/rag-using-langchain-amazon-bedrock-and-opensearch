@@ -94,7 +94,7 @@ def main():
     
     # Vector embedding using Amazon Bedrock Titan text embedding
     all_json_records = []
-    logging.info(f"Creating embeddings for {len(all_records)} records")
+    logging.info(f"Creating embeddings for records")
     
     # using the arg --early-stop
     i = 0
@@ -102,16 +102,20 @@ def main():
         i += 1
         if args.early_stop:
             if i > early_stop_record_count:
+                # Bulk put all records to OpenSearch
+                success, failed = opensearch.put_bulk_in_opensearch(all_json_records, opensearch_client)
+                logging.info(f"Documents saved {success}, documents failed to save {failed}")
                 break
         records_with_embedding = create_vector_embedding_with_bedrock(record, name, bedrock_client)
         logging.info(f"Embedding for record {i} created")
         all_json_records.append(records_with_embedding)
-    
+        if i % 500 == 0 or i == len(all_records)-1:
+            # Bulk put all records to OpenSearch
+            success, failed = opensearch.put_bulk_in_opensearch(all_json_records, opensearch_client)
+            all_json_records = []
+            logging.info(f"Documents saved {success}, documents failed to save {failed}")
+            
     logging.info("Finished creating records using Amazon Bedrock Titan text embedding")
-    
-    # Bulk put all records to OpenSearch
-    success, failed = opensearch.put_bulk_in_opensearch(all_json_records, opensearch_client)
-    logging.info(f"Documents saved {success}, documents failed to save {failed}")
     
     logging.info("Cleaning up")
     dataset.delete_file(compressed_file_path)
