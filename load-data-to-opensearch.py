@@ -3,7 +3,7 @@ import coloredlogs
 import json
 import argparse
 import boto3
-from utils import dataset, secret, opensearch, iam
+from utils import dataset, secret, opensearch
 
 coloredlogs.install(fmt='%(asctime)s %(levelname)s %(message)s', datefmt='%H:%M:%S', level='INFO')
 logging.basicConfig(level=logging.INFO) 
