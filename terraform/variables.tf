@@ -1,6 +1,6 @@
 # General variables
 variable "region" {
-  default     = "us-west-2"
+  default     = "us-east-1"
   description = "The region you want to deploy the solution"
 }
 
