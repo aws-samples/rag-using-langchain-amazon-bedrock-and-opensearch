@@ -2,10 +2,8 @@ import logging
 import coloredlogs
 import json
 import argparse
-from utils.bedrock import get_bedrock_client
-import sys
-import os
-from utils import bedrock, dataset, secret, opensearch, iam
+import boto3
+from utils import dataset, secret, opensearch, iam
 
 coloredlogs.install(fmt='%(asctime)s %(levelname)s %(message)s', datefmt='%H:%M:%S', level='INFO')
 logging.basicConfig(level=logging.INFO) 
@@ -16,27 +14,21 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--recreate", type=bool, default=0)
     parser.add_argument("--early-stop", type=bool, default=0)
+    parser.add_argument("--index", type=str, default="rag")
+    parser.add_argument("--region", type=str, default="us-east-1")
     
     return parser.parse_known_args()
 
 
-
-def get_bedrock_client(region, account_id):
-    module_path = "."
-    sys.path.append(os.path.abspath(module_path))
-    os.environ['AWS_DEFAULT_REGION'] = region
-
-    boto3_bedrock = bedrock.get_bedrock_client(
-        assumed_role=f'arn:aws:iam::{account_id}:role/bedrock',
-        region=region, 
-        )
-    return boto3_bedrock
+def get_bedrock_client(region):
+    bedrock_client = boto3.client("bedrock-runtime", region_name=region)
+    return bedrock_client
 
 
 def create_vector_embedding_with_bedrock(text, name, bedrock_client):
     payload = {"inputText": f"{text}"}
     body = json.dumps(payload)
-    modelId = "amazon.titan-e1t-medium"
+    modelId = "amazon.titan-embed-text-v1"
     accept = "application/json"
     contentType = "application/json"
 
@@ -51,12 +43,13 @@ def create_vector_embedding_with_bedrock(text, name, bedrock_client):
             
 def main():
     logging.info("Starting")
-    # vars
-    region = "us-west-2"
-    name = 'rag'
+    
     dataset_url = "https://huggingface.co/datasets/sentence-transformers/embedding-training-data/resolve/main/gooaq_pairs.jsonl.gz"
     early_stop_record_count = 100
+    
     args, _ = parse_args()
+    region = args.region
+    name = args.index
     
     # Prepare OpenSearch index with vector embeddings index mapping
     logging.info(f"recreating opensearch index: {args.recreate}, using early stop: {args.early_stop} to insert only {early_stop_record_count} records")
@@ -89,8 +82,7 @@ def main():
             all_records = dataset.prep_for_put(file_path)
     
     # Initialize bedrock client
-    account_id = iam.get_account_id()
-    bedrock_client = get_bedrock_client(region, account_id)
+    bedrock_client = get_bedrock_client(region)
     
     # Vector embedding using Amazon Bedrock Titan text embedding
     all_json_records = []

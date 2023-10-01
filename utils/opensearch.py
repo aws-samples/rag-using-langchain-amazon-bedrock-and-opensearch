@@ -58,7 +58,7 @@ def create_index_mapping(opensearch_client, index_name):
             "properties": {
                 "vector_field": {
                     "type": "knn_vector",
-                    "dimension": 4096
+                    "dimension": 1536
                 },
                 "text": {
                     "type": "keyword"
