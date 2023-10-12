@@ -1,5 +1,5 @@
 boto3>=1.28.57
-langchain==0.0.305
+langchain>=0.0.312
 coloredlogs==15.0.1
 jq==1.6.0
 opensearch-py==2.3.1
