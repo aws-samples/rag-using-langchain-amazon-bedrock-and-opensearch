@@ -8,14 +8,14 @@ You can use `--bedrock-model-id` parameter, to seamlessly choose one of the avai
 
 Anthropic:
 
-- Claude v2 `python ./ask-bedrock-with-rag.py --ask "How will AI will change our every day life?"`
-- Claude v1.3 `python ./ask-bedrock-with-rag.py --bedrock-model-id anthropic.claude-v1 --ask "How will AI will change our every day life?"`
-- Claude Instance v1.2 `python ./ask-bedrock-with-rag.py --bedrock-model-id anthropic.claude-instant-v1 --ask "How will AI will change our every day life?"`
+- Claude v2 `python ./ask-bedrock-with-rag.py --ask "How will AI change our every day life?"`
+- Claude v1.3 `python ./ask-bedrock-with-rag.py --bedrock-model-id anthropic.claude-v1 --ask "How will AI change our every day life?"`
+- Claude Instance v1.2 `python ./ask-bedrock-with-rag.py --bedrock-model-id anthropic.claude-instant-v1 --ask "How will AI change our every day life?"`
 
 AI21 Labs:
 
-- Jurassic-2 Ultra `python ./ask-bedrock-with-rag.py --bedrock-model-id ai21.j2-ultra-v1 --ask "How will AI will change our every day life?"`
-- Jurassic-2 Mid `python ./ask-bedrock-with-rag.py --bedrock-model-id ai21.j2-mid-v1 --ask "How will AI will change our every day life?"`
+- Jurassic-2 Ultra `python ./ask-bedrock-with-rag.py --bedrock-model-id ai21.j2-ultra-v1 --ask "How will AI change our every day life?"`
+- Jurassic-2 Mid `python ./ask-bedrock-with-rag.py --bedrock-model-id ai21.j2-mid-v1 --ask "How will AI change our every day life?"`
 
 ## Prerequisites
 
