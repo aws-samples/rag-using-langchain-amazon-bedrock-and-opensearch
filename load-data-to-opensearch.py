@@ -1,13 +1,15 @@
-import logging
-import coloredlogs
 import json
 import argparse
 import boto3
 from utils import dataset, secret, opensearch
+from loguru import logger
+import sys
+import os
 
-coloredlogs.install(fmt='%(asctime)s %(levelname)s %(message)s', datefmt='%H:%M:%S', level='INFO')
-logging.basicConfig(level=logging.INFO) 
-logger = logging.getLogger(__name__)
+
+# logger
+logger.remove()
+logger.add(sys.stdout, level=os.getenv("LOG_LEVEL", "INFO"))
 
 
 def parse_args():
@@ -42,7 +44,7 @@ def create_vector_embedding_with_bedrock(text, name, bedrock_client):
 
             
 def main():
-    logging.info("Starting")
+    logger.info("Starting")
     
     dataset_url = "https://huggingface.co/datasets/sentence-transformers/embedding-training-data/resolve/main/gooaq_pairs.jsonl.gz"
     early_stop_record_count = 100
@@ -52,8 +54,8 @@ def main():
     name = args.index
     
     # Prepare OpenSearch index with vector embeddings index mapping
-    logging.info(f"recreating opensearch index: {args.recreate}, using early stop: {args.early_stop} to insert only {early_stop_record_count} records")
-    logging.info("Preparing OpenSearch Index")
+    logger.info(f"recreating opensearch index: {args.recreate}, using early stop: {args.early_stop} to insert only {early_stop_record_count} records")
+    logger.info("Preparing OpenSearch Index")
     opensearch_password = secret.get_secret(name, region)
     opensearch_client =  opensearch.get_opensearch_cluster_client(name, opensearch_password, region)
     
@@ -61,20 +63,20 @@ def main():
     if args.recreate:
         response = opensearch.delete_opensearch_index(opensearch_client, name)
         if response:
-            logging.info("OpenSearch index successfully deleted")
+            logger.info("OpenSearch index successfully deleted")
     
-    logging.info(f"Checking if index {name} exists in OpenSearch cluster")
+    logger.info(f"Checking if index {name} exists in OpenSearch cluster")
     exists = opensearch.check_opensearch_index(opensearch_client, name)    
     if not exists:
-        logging.info("Creating OpenSearch index")
+        logger.info("Creating OpenSearch index")
         success = opensearch.create_index(opensearch_client, name)
         if success:
-            logging.info("Creating OpenSearch index mapping")
+            logger.info("Creating OpenSearch index mapping")
             success = opensearch.create_index_mapping(opensearch_client, name)
-            logging.info(f"OpenSearch Index mapping created")
+            logger.info(f"OpenSearch Index mapping created")
     
     # Download sample dataset from HuggingFace 
-    logging.info("Downloading dataset from HuggingFace")        
+    logger.info("Downloading dataset from HuggingFace")        
     compressed_file_path = dataset.download_dataset(dataset_url)
     if compressed_file_path is not None:
         file_path = dataset.decompress_dataset(compressed_file_path)
@@ -86,7 +88,7 @@ def main():
     
     # Vector embedding using Amazon Bedrock Titan text embedding
     all_json_records = []
-    logging.info(f"Creating embeddings for records")
+    logger.info(f"Creating embeddings for records")
     
     # using the arg --early-stop
     i = 0
@@ -96,24 +98,24 @@ def main():
             if i > early_stop_record_count:
                 # Bulk put all records to OpenSearch
                 success, failed = opensearch.put_bulk_in_opensearch(all_json_records, opensearch_client)
-                logging.info(f"Documents saved {success}, documents failed to save {failed}")
+                logger.info(f"Documents saved {success}, documents failed to save {failed}")
                 break
         records_with_embedding = create_vector_embedding_with_bedrock(record, name, bedrock_client)
-        logging.info(f"Embedding for record {i} created")
+        logger.info(f"Embedding for record {i} created")
         all_json_records.append(records_with_embedding)
         if i % 500 == 0 or i == len(all_records)-1:
             # Bulk put all records to OpenSearch
             success, failed = opensearch.put_bulk_in_opensearch(all_json_records, opensearch_client)
             all_json_records = []
-            logging.info(f"Documents saved {success}, documents failed to save {failed}")
+            logger.info(f"Documents saved {success}, documents failed to save {failed}")
             
-    logging.info("Finished creating records using Amazon Bedrock Titan text embedding")
+    logger.info("Finished creating records using Amazon Bedrock Titan text embedding")
     
-    logging.info("Cleaning up")
+    logger.info("Cleaning up")
     dataset.delete_file(compressed_file_path)
     dataset.delete_file(file_path)
     
-    logging.info("Finished")
+    logger.info("Finished")
         
 if __name__ == "__main__":
     main()

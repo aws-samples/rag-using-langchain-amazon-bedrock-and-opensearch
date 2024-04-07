@@ -1,5 +1,5 @@
 import boto3
-import logging
+
 
 def get_secret(secret_prefix, region):
     client = boto3.client('secretsmanager', region_name=region)

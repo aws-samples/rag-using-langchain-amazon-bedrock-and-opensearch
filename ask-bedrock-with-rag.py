@@ -1,18 +1,20 @@
-import coloredlogs
-import logging
 import argparse
 from utils import opensearch, secret
-from langchain.embeddings import BedrockEmbeddings
-from langchain.vectorstores import OpenSearchVectorSearch
+from langchain_community.embeddings import BedrockEmbeddings
+from langchain_community.vectorstores import OpenSearchVectorSearch
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain.llms.bedrock import Bedrock
 import boto3
+from loguru import logger
+import sys
+import os
 
 
-coloredlogs.install(fmt='%(asctime)s %(levelname)s %(message)s', datefmt='%H:%M:%S', level='INFO')
-logging.basicConfig(level=logging.INFO) 
-logger = logging.getLogger(__name__)
+# logger
+logger.remove()
+logger.add(sys.stdout, level=os.getenv("LOG_LEVEL", "INFO"))
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -58,7 +60,7 @@ def create_bedrock_llm(bedrock_client, model_version_id):
     
 
 def main():
-    logging.info("Starting")
+    logger.info("Starting")
     args, _ = parse_args()
     region = args.region
     index_name = args.index
@@ -78,7 +80,7 @@ def main():
         question = args.ask
     else:
         question = "what is the meaning of <3?"
-        logging.info(f"No question provided, using default question {question}")
+        logger.info(f"No question provided, using default question {question}")
     
     prompt_template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer. don't include harmful content
 
@@ -90,7 +92,7 @@ def main():
         template=prompt_template, input_variables=["context", "question"]
     )
     
-    logging.info(f"Starting the chain with KNN similarity using OpenSearch, Bedrock FM {bedrock_model_id}, and Bedrock embeddings with {bedrock_embedding_model_id}")
+    logger.info(f"Starting the chain with KNN similarity using OpenSearch, Bedrock FM {bedrock_model_id}, and Bedrock embeddings with {bedrock_embedding_model_id}")
     qa = RetrievalQA.from_chain_type(llm=bedrock_llm, 
                                      chain_type="stuff", 
                                      retriever=opensearch_vector_search_client.as_retriever(),
@@ -98,15 +100,15 @@ def main():
                                      chain_type_kwargs={"prompt": PROMPT, "verbose": True},
                                      verbose=True)
     
-    response = qa(question, return_only_outputs=False)
+    response = qa.invoke(question, return_only_outputs=False)
     
-    logging.info("This are the similar documents from OpenSearch based on the provided query")
+    logger.info("This are the similar documents from OpenSearch based on the provided query")
     source_documents = response.get('source_documents')
     for d in source_documents:
-        logging.info(f"With the following similar content from OpenSearch:\n{d.page_content}\n")
-        logging.info(f"Text: {d.metadata['text']}")
+        logger.info(f"With the following similar content from OpenSearch:\n{d.page_content}\n")
+        logger.info(f"Text: {d.metadata['text']}")
     
-    logging.info(f"The answer from Bedrock {bedrock_model_id} is: {response.get('result')}")
+    logger.info(f"The answer from Bedrock {bedrock_model_id} is: {response.get('result')}")
     
 
 if __name__ == "__main__":
