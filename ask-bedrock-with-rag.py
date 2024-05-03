@@ -2,9 +2,10 @@ import argparse
 from utils import opensearch, secret
 from langchain_community.embeddings import BedrockEmbeddings
 from langchain_community.vectorstores import OpenSearchVectorSearch
-from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate
-from langchain.llms.bedrock import Bedrock
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.chains import create_retrieval_chain
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_community.chat_models import BedrockChat
 import boto3
 from loguru import logger
 import sys
@@ -18,10 +19,10 @@ logger.add(sys.stdout, level=os.getenv("LOG_LEVEL", "INFO"))
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--ask", type=str, default="What is <3?")
+    parser.add_argument("--ask", type=str, default="what is the meaning of <3?")
     parser.add_argument("--index", type=str, default="rag")
     parser.add_argument("--region", type=str, default="us-east-1")
-    parser.add_argument("--bedrock-model-id", type=str, default="anthropic.claude-v2")
+    parser.add_argument("--bedrock-model-id", type=str, default="anthropic.claude-3-sonnet-20240229-v1:0")
     parser.add_argument("--bedrock-embedding-model-id", type=str, default="amazon.titan-embed-text-v1")
     
     return parser.parse_known_args()
@@ -51,7 +52,7 @@ def create_opensearch_vector_search_client(index_name, opensearch_password, bedr
 
 
 def create_bedrock_llm(bedrock_client, model_version_id):
-    bedrock_llm = Bedrock(
+    bedrock_llm = BedrockChat(
         model_id=model_version_id, 
         client=bedrock_client,
         model_kwargs={'temperature': 0}
@@ -60,12 +61,14 @@ def create_bedrock_llm(bedrock_client, model_version_id):
     
 
 def main():
-    logger.info("Starting")
+    logger.info("Starting...")
     args, _ = parse_args()
     region = args.region
     index_name = args.index
     bedrock_model_id = args.bedrock_model_id
     bedrock_embedding_model_id = args.bedrock_embedding_model_id
+    question = args.ask
+    logger.info(f"Question provided: {question}")
     
     # Creating all clients for chain
     bedrock_client = get_bedrock_client(region)
@@ -76,39 +79,32 @@ def main():
     opensearch_vector_search_client = create_opensearch_vector_search_client(index_name, opensearch_password, bedrock_embeddings_client, opensearch_endpoint)
     
     # LangChain prompt template
-    if len(args.ask) > 0:
-        question = args.ask
-    else:
-        question = "what is the meaning of <3?"
-        logger.info(f"No question provided, using default question {question}")
-    
-    prompt_template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer. don't include harmful content
+    prompt = ChatPromptTemplate.from_template("""Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer. don't include harmful content
 
     {context}
 
-    Question: {question}
-    Answer:"""
-    PROMPT = PromptTemplate(
-        template=prompt_template, input_variables=["context", "question"]
+    Question: {input}
+    Answer:""")
+    
+    docs_chain = create_stuff_documents_chain(bedrock_llm, prompt)
+    retrieval_chain = create_retrieval_chain(
+        retriever=opensearch_vector_search_client.as_retriever(),
+        combine_docs_chain = docs_chain
     )
     
-    logger.info(f"Starting the chain with KNN similarity using OpenSearch, Bedrock FM {bedrock_model_id}, and Bedrock embeddings with {bedrock_embedding_model_id}")
-    qa = RetrievalQA.from_chain_type(llm=bedrock_llm, 
-                                     chain_type="stuff", 
-                                     retriever=opensearch_vector_search_client.as_retriever(),
-                                     return_source_documents=True,
-                                     chain_type_kwargs={"prompt": PROMPT, "verbose": True},
-                                     verbose=True)
+    logger.info(f"Invoking the chain with KNN similarity using OpenSearch, Bedrock FM {bedrock_model_id}, and Bedrock embeddings with {bedrock_embedding_model_id}")
+    response = retrieval_chain.invoke({"input": question})
     
-    response = qa.invoke(question, return_only_outputs=False)
-    
-    logger.info("This are the similar documents from OpenSearch based on the provided query")
-    source_documents = response.get('source_documents')
+    print("")
+    logger.info("These are the similar documents from OpenSearch based on the provided query")
+    source_documents = response.get('context')
     for d in source_documents:
-        logger.info(f"With the following similar content from OpenSearch:\n{d.page_content}\n")
+        print("")
+        # logger.info(f"With the following similar content from OpenSearch:\n{d.page_content}\n")
         logger.info(f"Text: {d.metadata['text']}")
     
-    logger.info(f"The answer from Bedrock {bedrock_model_id} is: {response.get('result')}")
+    print("")
+    logger.info(f"The answer from Bedrock {bedrock_model_id} is: {response.get('answer')}")
     
 
 if __name__ == "__main__":
