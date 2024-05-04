@@ -96,12 +96,11 @@ def main():
     response = retrieval_chain.invoke({"input": question})
     
     print("")
-    logger.info("These are the similar documents from OpenSearch based on the provided query")
+    logger.info("These are the similar documents from OpenSearch based on the provided query:")
     source_documents = response.get('context')
     for d in source_documents:
         print("")
-        # logger.info(f"With the following similar content from OpenSearch:\n{d.page_content}\n")
-        logger.info(f"Text: {d.metadata['text']}")
+        logger.info(f"Text: {d.page_content}")
     
     print("")
     logger.info(f"The answer from Bedrock {bedrock_model_id} is: {response.get('answer')}")
