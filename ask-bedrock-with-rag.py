@@ -19,7 +19,7 @@ logger.add(sys.stdout, level=os.getenv("LOG_LEVEL", "INFO"))
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--ask", type=str, default="hat is the meaning of <3?")
+    parser.add_argument("--ask", type=str, default="What is the meaning of <3?")
     parser.add_argument("--index", type=str, default="rag")
     parser.add_argument("--region", type=str, default="us-east-1")
     parser.add_argument("--bedrock-model-id", type=str, default="anthropic.claude-3-sonnet-20240229-v1:0")
