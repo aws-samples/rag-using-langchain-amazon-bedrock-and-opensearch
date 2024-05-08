@@ -19,7 +19,7 @@ logger.add(sys.stdout, level=os.getenv("LOG_LEVEL", "INFO"))
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--ask", type=str, default="What is the meaning of <3?")
+    parser.add_argument("--ask", type=str, default="hat is the meaning of <3?")
     parser.add_argument("--index", type=str, default="rag")
     parser.add_argument("--region", type=str, default="us-east-1")
     parser.add_argument("--bedrock-model-id", type=str, default="anthropic.claude-3-sonnet-20240229-v1:0")
@@ -79,7 +79,7 @@ def main():
     opensearch_vector_search_client = create_opensearch_vector_search_client(index_name, opensearch_password, bedrock_embeddings_client, opensearch_endpoint)
     
     # LangChain prompt template
-    prompt = ChatPromptTemplate.from_template("""Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer. don't include harmful content
+    prompt = ChatPromptTemplate.from_template("""If the context is not relevant, please answer the question by using your own knowledge about the topic. If you don't know the answer, just say that you don't know, don't try to make up an answer. don't include harmful content
 
     {context}
 
