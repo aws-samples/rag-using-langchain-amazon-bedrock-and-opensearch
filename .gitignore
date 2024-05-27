@@ -5,3 +5,5 @@ dependencies/
 
 .venv/
 __pycache__/
+
+.python-version

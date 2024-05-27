@@ -73,7 +73,7 @@ def main():
         if success:
             logger.info("Creating OpenSearch index mapping")
             success = opensearch.create_index_mapping(opensearch_client, name)
-            logger.info(f"OpenSearch Index mapping created")
+            logger.info("OpenSearch Index mapping created")
     
     # Download sample dataset from HuggingFace 
     logger.info("Downloading dataset from HuggingFace")        
@@ -88,7 +88,7 @@ def main():
     
     # Vector embedding using Amazon Bedrock Titan text embedding
     all_json_records = []
-    logger.info(f"Creating embeddings for records")
+    logger.info("Creating embeddings for records")
     
     # using the arg --early-stop
     i = 0
