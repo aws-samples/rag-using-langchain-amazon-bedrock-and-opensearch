@@ -61,6 +61,8 @@ AI21 Labs:
     >>- `--early-stop` to load only 100 embedded documents into OpenSearch
     >>- `--index` to use a different index than the default **rag**
     >>- `--region` in case you are not using the default **us-east-1**
+    >>- `--multi-tenant` to use multi tenancy, will load data with tenant IDs (1-5)
+    
 
 3. Now that we have embedded text, into our OpenSearch cluster, we can start querying our LLM model Titan text in Amazon Bedrock with RAG
 
@@ -72,6 +74,8 @@ AI21 Labs:
     >>- `--index` to use a different index than the default **rag**
     >>- `--region` in case you are not using the default **us-east-1**
     >>- `--bedrock-model-id` to choose different models than Anthropic's Claude v2
+    >>- `--tenant-id` to filter only a specific tenant ID
+
 
 ### Cleanup
 

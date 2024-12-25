@@ -109,7 +109,6 @@ def main():
     logger.info("These are the similar documents from OpenSearch based on the provided query:")
     source_documents = response.get('context')
     for d in source_documents:
-        print (f"tenant_id={tenant_id}")
         logger.info(f"Text: {d.page_content}")
     
     print("")
