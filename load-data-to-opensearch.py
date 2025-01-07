@@ -5,6 +5,8 @@ from utils import dataset, secret, opensearch
 from loguru import logger
 import sys
 import os
+import random
+
 
 
 # logger
@@ -18,6 +20,7 @@ def parse_args():
     parser.add_argument("--early-stop", type=bool, default=0)
     parser.add_argument("--index", type=str, default="rag")
     parser.add_argument("--region", type=str, default="us-east-1")
+    parser.add_argument("--multi-tenant", type=bool, default=0)
     
     return parser.parse_known_args()
 
@@ -33,6 +36,8 @@ def create_vector_embedding_with_bedrock(text, name, bedrock_client):
     modelId = "amazon.titan-embed-text-v1"
     accept = "application/json"
     contentType = "application/json"
+    args, _ = parse_args()
+    multi_tenant = args.multi_tenant
 
     response = bedrock_client.invoke_model(
         body=body, modelId=modelId, accept=accept, contentType=contentType
@@ -40,9 +45,19 @@ def create_vector_embedding_with_bedrock(text, name, bedrock_client):
     response_body = json.loads(response.get("body").read())
 
     embedding = response_body.get("embedding")
-    return {"_index": name, "text": text, "vector_field": embedding}
 
-            
+    document = {
+        "_index": name,
+        "text": text,
+        "vector_field": embedding
+    }
+    
+
+    if multi_tenant == 1:
+        document["tenant_id"] = random.randint(1, 5)
+
+    return document
+
 def main():
     logger.info("Starting")
     
@@ -52,9 +67,13 @@ def main():
     args, _ = parse_args()
     region = args.region
     name = args.index
+    multi_tenant = args.multi_tenant
+
     
     # Prepare OpenSearch index with vector embeddings index mapping
-    logger.info(f"recreating opensearch index: {args.recreate}, using early stop: {args.early_stop} to insert only {early_stop_record_count} records")
+    logger.info(f"Recreating opensearch index: {args.recreate}, using early stop: {args.early_stop} to insert only {early_stop_record_count} records")
+    if multi_tenant:
+        logger.info("Using multi tenant mode")    
     logger.info("Preparing OpenSearch Index")
     opensearch_password = secret.get_secret(name, region)
     opensearch_client =  opensearch.get_opensearch_cluster_client(name, opensearch_password, region)
